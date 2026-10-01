@@ -1,0 +1,1118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ontario Wait Times</title>
+<style>
+	:root {
+		--bg: #F0F0F0; --fg: #000000; --text: #111111; --muted: #3C4043; --nodata: #5F6368;
+		--white: #FFFFFF; --border: #B8BEC6; --grid: #E1E4E8; --link: #0B57D0;
+		--province: #E8EFF8; --select: #0078D7; --tip: #FFFFE1;
+		--site-line: #0B57D0; --prov-line: #5F6368; --target-line: #B3261E;
+	}
+	* { box-sizing: border-box; }
+	html, body { height: 100%; }
+	body {
+		margin: 0; background: var(--bg); color: var(--fg);
+		font: 12px "Segoe UI", Tahoma, Arial, sans-serif;
+	}
+	.app { display: flex; flex-direction: column; height: 100vh; min-width: 960px; padding: 10px 12px 10px; }
+	.line { display: flex; align-items: flex-end; flex-wrap: wrap; }
+	.line + .line { margin-top: 8px; }
+	.field { display: flex; flex-direction: column; margin-right: 16px; }
+	.field > .cap { margin-bottom: 2px; white-space: nowrap; }
+	.inline { display: flex; align-items: flex-end; }
+	input[type=text], select {
+		font: inherit; height: 21px; border: 1px solid #7A7A7A; background: var(--white); color: var(--fg);
+		padding: 1px 4px; border-radius: 0; outline: none;
+	}
+	input[type=text]:focus, select:focus { border-color: var(--select); }
+	input[type=text]:disabled, select:disabled { background: #F0F0F0; color: #6D6D6D; border-color: #CCCCCC; }
+	select { padding: 0 2px; }
+	.radios { display: flex; height: 21px; align-items: center; }
+	.radios label { margin-right: 12px; display: flex; align-items: center; gap: 3px; }
+	.radios input { margin: 0; }
+	button {
+		font: inherit; height: 23px; min-width: 88px; padding: 0 10px; color: var(--fg);
+		background: #E1E1E1; border: 1px solid #ADADAD; border-radius: 0; cursor: default;
+	}
+	button:hover:not(:disabled) { background: #E5F1FB; border-color: #0078D7; }
+	button:active:not(:disabled) { background: #CCE4F7; border-color: #005499; }
+	button:disabled { color: #838383; background: #CCCCCC; border-color: #BFBFBF; }
+	.searchcell { position: relative; margin-right: 8px; }
+	.progress {
+		width: 88px; height: 23px; border: 1px solid #BCBCBC; background: #E6E6E6;
+		position: relative; overflow: hidden;
+	}
+	.progress .bar {
+		position: absolute; top: 1px; bottom: 1px; width: 22%; background: #06B025;
+		animation: slide 1.1s linear infinite;
+	}
+	@keyframes slide { from { left: -22%; } to { left: 100%; } }
+	.help { color: var(--link); cursor: help; margin-left: 4px; }
+	fieldset {
+		border: 1px solid #DCDCDC; margin: 4px 0; padding: 6px; min-width: 0;
+	}
+	legend { padding: 0 2px; }
+	fieldset.results { flex: 1; display: flex; flex-direction: column; min-height: 0; margin-top: 8px; }
+	.tablewrap {
+		flex: 1; overflow: auto; background: var(--white); border: 1px solid #828790; outline: none;
+	}
+	table.tree { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
+	table.tree th {
+		position: sticky; top: 0; z-index: 2; background: var(--white); font-weight: normal; text-align: center;
+		padding: 4px 6px; border-right: 1px solid #E5E5E5; border-bottom: 1px solid #E5E5E5;
+		white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; cursor: default;
+	}
+	table.tree th:hover { background: #D9EBF9; border-right-color: #BCDCF4; }
+	table.tree th:active { background: #BCDCF4; }
+	table.tree th .grip { position: absolute; top: 0; right: -3px; width: 7px; height: 100%; cursor: col-resize; z-index: 3; }
+	table.tree td {
+		padding: 2px 6px; height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--fg);
+	}
+	table.tree td.num { text-align: right; }
+	table.tree tr.row { cursor: default; }
+	table.tree tr.province td { background: var(--province); font-weight: bold; }
+	table.tree tr.nodata td { color: var(--nodata); }
+	table.tree tr.row:hover td { background: #EEF5FD; }
+	table.tree tr.row.province:hover td { background: #DDE7F4; }
+	table.tree tr.sel td, table.tree tr.row.sel:hover td { background: var(--select); color: #FFFFFF; }
+	table.tree tr.detail td { padding: 2px 10px 10px 24px; background: var(--white); white-space: normal; height: auto; }
+	.empty { color: var(--muted); padding: 10px; }
+	.panel {
+		border: 1px solid var(--border); background: var(--white); display: flex; flex-wrap: wrap;
+		align-items: flex-start; color: var(--text);
+	}
+	.panel .chart { margin: 8px; flex: none; }
+	.info {
+		display: grid; grid-template-columns: minmax(110px, 180px) minmax(0, 1fr); column-gap: 10px; row-gap: 6px;
+		margin: 8px 10px 8px 4px; align-content: start; flex: 1 1 300px; max-width: 470px; min-width: 0;
+	}
+	.panel.screening .info { max-width: 720px; }
+	.info .k { font-weight: bold; }
+	.info .v { white-space: pre-line; }
+	.info .v .m, .m { color: var(--muted); }
+	.info .v div + div { margin-top: 4px; }
+	a { color: var(--link); text-decoration: underline; }
+	.advtoggle { cursor: pointer; user-select: none; padding: 2px 0; align-self: flex-start; }
+	table.lag { border-collapse: collapse; background: var(--white); border: 1px solid #828790; }
+	table.lag th { font-weight: normal; padding: 4px 6px; border-right: 1px solid #E5E5E5; border-bottom: 1px solid #E5E5E5; }
+	table.lag th:hover { background: #D9EBF9; }
+	table.lag td { padding: 2px 6px; text-align: right; height: 20px; }
+	.footer { margin-top: 4px; }
+	.title { font-size: 16px; font-weight: bold; margin: 0 0 8px; }
+	.kofi { margin-top: 4px; }
+	.tip {
+		position: fixed; z-index: 50; background: var(--tip); color: #000; border: 1px solid #767676;
+		padding: 4px 6px; white-space: pre-line; pointer-events: none;
+	}
+	.ss { position: relative; }
+	.ss-list {
+		position: absolute; left: 0; top: 100%; z-index: 20; min-width: 320px; max-height: 182px; overflow-y: auto;
+		margin: 0; padding: 1px 0; list-style: none; background: var(--white); border: 1px solid var(--border);
+	}
+	.ss-list li { padding: 1px 4px; white-space: nowrap; cursor: default; }
+	.ss-list li.active { background: #DCE7F7; }
+	[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+	<h1 class="title">Ontario Medical Wait Times Lookup</h1>
+	<div class="form">
+		<div class="line">
+			<label class="field"><span class="cap">Postal code</span><input type="text" id="postal" value="" size="10" maxlength="7" placeholder="A1A 1A1"></label>
+			<label class="field"><span class="cap">Radius (km)</span><input type="text" id="radius" value="40" size="7"></label>
+			<div class="field"><span class="cap">Search for</span>
+				<div class="radios">
+					<label><input type="radio" name="kind" value="imaging" checked> Imaging</label>
+					<label><input type="radio" name="kind" value="surgery"> Surgery</label>
+				</div>
+			</div>
+		</div>
+		<div class="line">
+			<div class="field" id="imagingOpts"><span class="cap">Imaging type</span>
+				<select id="imaging" style="width:130px"><option>CT</option><option>MRI</option><option>Breast screening</option></select>
+			</div>
+			<div class="inline" id="surgeryOpts" hidden>
+				<div class="field"><span class="cap">Procedure (type to search)</span>
+					<div class="ss"><input type="text" id="proc" size="44" autocomplete="off" disabled value="Loading procedures..."><ul class="ss-list" id="procList" hidden></ul></div>
+				</div>
+				<div class="field"><span class="cap">Wait</span>
+					<select id="wait" style="width:230px"><option value="2">Decision to surgery (Wait 2)</option><option value="1">Referral to first appointment (Wait 1)</option></select>
+				</div>
+			</div>
+			<div class="field"><span class="cap">Priority<span class="help" id="prioHelp">(?)</span></span>
+				<select id="priority" style="width:46px"><option>2</option><option>3</option><option selected>4</option></select>
+			</div>
+			<div class="field"><span class="cap">&nbsp;</span>
+				<div class="searchcell"><button id="searchBtn">Search</button><div class="progress" id="progress" hidden><div class="bar"></div></div></div>
+			</div>
+			<div class="field"><span class="cap">&nbsp;</span><button id="exportBtn" disabled>Export CSV</button></div>
+		</div>
+	</div>
+	<fieldset class="results"><legend id="resultsHint">Search results. Click a column header to sort. Click a site to show or hide its details.</legend>
+		<div class="tablewrap" id="tablewrap" tabindex="0">
+			<table class="tree" id="tree">
+				<colgroup><col><col style="width:70px"><col style="width:250px"><col style="width:130px"></colgroup>
+				<thead><tr><th data-col="0">Site</th><th data-col="1">km</th><th data-col="2"></th><th data-col="3"></th></tr></thead>
+				<tbody id="tbody"></tbody>
+			</table>
+		</div>
+	</fieldset>
+	<div class="advtoggle" id="advToggle">&#9660; Show advanced</div>
+	<fieldset id="advBox" hidden><legend>Rank persistence: how well one month's ranking predicts later months</legend>
+		<table class="lag"><thead><tr><th style="width:100px">Lag (months)</th><th style="width:150px">Mean Spearman rho</th><th style="width:150px">Leader still top 3</th><th style="width:110px">Chance (3/n)</th><th style="width:110px">Month pairs</th></tr></thead><tbody id="lagBody"></tbody></table>
+	</fieldset>
+	<div class="footer">From <a href="https://www.ontariohealth.ca" target="_blank" rel="noopener">www.ontariohealth.ca</a><span id="updated">. &#9749; If you found this page useful, consider buying me a coffee at <a href="https://ko-fi.com/small_____" target="_blank" rel="noopener">ko-fi.com/small_____</a></span></div>
+	<div class="kofi"></div>
+</div>
+<div class="tip" id="tip" hidden></div>
+<script src="contacts.js"></script>
+<script src="screening.js"></script>
+<script>
+"use strict";
+// Port of ctwaits/core.py and ctwaits/gui.py. Data: Ontario Health's public wait-time API
+// (or.hqontario.ca allows any origin). Breast screening comes from screening.js, a daily
+// snapshot, because that API only answers pages on www.ontariohealth.ca.
+
+// ---------------------------------------------------------------- constants
+const BASE = "https://or.hqontario.ca";
+const LANG = "EN", AGE = "adult";
+const PROVINCIAL_ID = -354, PROVINCIAL_NAME = "Ontario provincial average", SICKKIDS_ID = 4824;
+const PRIORITIES = [2, 3, 4];
+const WAITS = {2: "Decision to surgery (Wait 2)", 1: "Referral to first appointment (Wait 1)"};
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const P90_LABEL = "90th percentile wait time (days)";
+const RESULTS_HINT = "Search results. Click a column header to sort. Click a site to show or hide its details.";
+const SCREENING_CAP_NOTE = "Some outlying breast screening sites may be missing from this search.";
+const PRIORITY_HELP = "P2-- Urgent; 2 day target\nP3-- Semi-Urgent/Suspected Cancer; 10 day target\nP4-- Non-Urgent/Elective; 28 day target";
+const WINDOW = 12, LAGS = [1, 3, 6, 12], MIN_SITES = 6, WORKERS = 8, TIMEOUT_MS = 30000;
+
+class ApiError extends Error {}
+
+// ---------------------------------------------------------------- helpers
+function roundHalfEven(v) {
+	const f = Math.floor(v), d = v - f;
+	if (Math.abs(d - 0.5) < 1e-9) return f % 2 === 0 ? f : f + 1;
+	return Math.round(v);
+}
+const g = v => String(Number(v));
+const fmtDays = v => v == null ? "n/a" : String(roundHalfEven(v));
+const fmtPct = v => v == null ? "n/a" : roundHalfEven(v) + "%";
+function parseNumber(v) {
+	if (v === null || v === undefined || String(v).trim() === "") return null;
+	const n = Number(v);
+	return Number.isFinite(n) ? n : null;
+}
+const monthLabel = k => (k && String(k).length === 6) ? `${String(k).slice(0, 4)}-${String(k).slice(4)}` : String(k || "");
+function monthLong(k) {
+	k = String(k || "");
+	if (k.length !== 6 || !/^\d+$/.test(k) || +k.slice(4) < 1 || +k.slice(4) > 12) return k;
+	return `${MONTHS[+k.slice(4) - 1]} ${k.slice(0, 4)}`;
+}
+const monthShort = k => { const l = monthLong(k); return l.includes(" ") ? l.slice(0, 3) + l.slice(l.indexOf(" ")) : l; };
+const formatDate = d => d ? `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}` : "";
+function parseIsoDate(s) {
+	const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ""));
+	return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
+}
+function formatPhone(raw) {
+	const d = String(raw || "").replace(/\D/g, "");
+	if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+	if (d.length === 11 && d[0] === "1") return `1-${d.slice(1, 4)}-${d.slice(4, 7)}-${d.slice(7)}`;
+	return String(raw || "").trim();
+}
+function formatHour(s) {
+	s = String(s || "").trim();
+	if (!/^\d{4}$/.test(s)) return s;
+	const h = +s.slice(0, 2);
+	return `${h % 12 || 12}:${s.slice(2)} ${h >= 12 ? "pm" : "am"}`;
+}
+function median(xs) {
+	const a = [...xs].sort((p, q) => p - q), n = a.length;
+	return n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2;
+}
+const mean = xs => xs.reduce((p, q) => p + q, 0) / xs.length;
+function haversineKm(a, b, c, d) {
+	const r = Math.PI / 180, p1 = a * r, p2 = c * r, dp = p2 - p1, dl = (d - b) * r;
+	const x = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+	return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(x)));
+}
+function el(tag, attrs, ...kids) {
+	const e = document.createElement(tag);
+	for (const [k, v] of Object.entries(attrs || {})) {
+		if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v);
+	}
+	for (const kid of kids) if (kid != null) e.append(kid);
+	return e;
+}
+function link(text, url) { return el("a", {href: url, target: "_blank", rel: "noopener", text}); }
+function domainOf(url) {
+	try { const h = new URL(url).host; return h.startsWith("www.") ? h.slice(4) : h; } catch (e) { return url; }
+}
+
+// ---------------------------------------------------------------- validation
+function normalizePostal(postal) {
+	const code = String(postal || "").replace(/\s+/g, "").toUpperCase();
+	if (!code) throw new Error("Enter a postal code, for example A1A 1A1.");
+	if (!/^[A-Z]\d[A-Z]\d[A-Z]\d$/.test(code)) throw new Error(`Invalid postal code '${postal}'; expected a form like A1A 1A1.`);
+	return code;
+}
+function normalizeRadius(r) {
+	const v = Number(String(r).trim());
+	if (!String(r).trim() || !Number.isFinite(v)) throw new Error(`Radius must be a number of kilometres; got '${r}'.`);
+	if (!(v > 0 && v <= 500)) throw new Error("Radius must be between 0 and 500 km.");
+	return v;
+}
+
+// ---------------------------------------------------------------- HTTP
+const cache = new Map();
+function fetchJson(url) {
+	if (cache.has(url)) return cache.get(url);
+	const p = (async () => {
+		let last;
+		for (let attempt = 0; attempt < 2; attempt++) {
+			const ctl = new AbortController();
+			const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+			try {
+				const r = await fetch(url, {signal: ctl.signal});
+				if (!r.ok) throw new Error(`HTTP Error ${r.status}`);
+				return await r.json();
+			} catch (e) {
+				last = e;
+			} finally {
+				clearTimeout(timer);
+			}
+		}
+		throw new ApiError(`Could not fetch ${url}: ${last && last.message}`);
+	})();
+	cache.set(url, p);
+	p.catch(() => cache.delete(url));
+	return p;
+}
+
+// ---------------------------------------------------------------- services
+function service(modality, procedure = null, wait = 2) {
+	const s = {modality, procedure, wait};
+	s.isSurgery = modality === "SURGERY";
+	s.isScreening = modality === "BREAST";
+	s.hasHistory = !s.isScreening;
+	s.label = s.isSurgery ? `${procedure.name}, ${WAITS[wait]}` : ({CT: "CT", MRI: "MRI", BREAST: "Breast screening"})[modality];
+	s.withinVerb = s.isSurgery ? (wait === 2 ? "treated" : "seen") : "scanned";
+	s.department = s.isSurgery ? `${procedure.name} surgery` : (s.isScreening ? "breast screening" : "diagnostic imaging");
+	s.listUrl = (lat, lng, page) => s.isSurgery
+		? `${BASE}/Surgical/wtsurgicaldata/${LANG}/${AGE}/${lat}/${lng}/${page}/${procedure.typeId}/${procedure.modalityId}/${wait}`
+		: `${BASE}/DiagnosticImaging/wtdata/${LANG}/${AGE}/${lat}/${lng}/${page}/${modality}/1`;
+	s.chartUrl = id => s.isSurgery
+		? `${BASE}/Surgical/wtsurgicalchartdata/${LANG}/${AGE}/${procedure.typeId}/${procedure.modalityId}/${wait}/${id}`
+		: `${BASE}/DiagnosticImaging/wtchartdata/${LANG}/${AGE}/${modality}/1/${id}`;
+	return s;
+}
+
+// ---------------------------------------------------------------- API wrappers
+async function geocode(postal) {
+	const code = normalizePostal(postal);
+	const d = await fetchJson(`${BASE}/city/postalcode/${code}`);
+	if (!d || typeof d !== "object" || d.Latitude == null || d.Latitude === "" || d.Longitude == null || d.Longitude === "")
+		throw new ApiError(`Postal code ${code} was not recognised by the Ontario Health lookup.`);
+	if (!d.InOntario) throw new Error(`Postal code ${code} is not in Ontario.`);
+	return [Number(d.Latitude), Number(d.Longitude)];
+}
+function isSickKids(r) {
+	const n = String(r.Name || "").toLowerCase();
+	return Number(r.Id) === SICKKIDS_ID || n.includes("sick children") || n.includes("sickkids");
+}
+function siteFromApi(r) {
+	return {
+		id: Number(r.Id), name: String(r.Name || "").trim(),
+		address: [r.Address1, r.Address2].filter(x => x && String(x).trim()).map(x => String(x).trim()).join(", "),
+		city: String(r.City || "").trim(), postalCode: String(r.PostalCode || "").trim(),
+		distanceKm: Number(r.Distance || 0),
+	};
+}
+function fullAddress(s) {
+	let pc = s.postalCode || "";
+	if (pc.length === 6) pc = `${pc.slice(0, 3)} ${pc.slice(3)}`;
+	return [s.address, [s.city, pc].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+}
+const PROVINCE_SITE = {id: PROVINCIAL_ID, name: PROVINCIAL_NAME, address: "", city: "", postalCode: "", distanceKm: 0};
+async function nearbySites(lat, lng, maxKm, svc) {
+	const sites = [], seen = new Set();
+	for (let page = 1; page <= 100; page++) {
+		let rows = await fetchJson(svc.listUrl(lat, lng, page));
+		if (!Array.isArray(rows)) throw new ApiError("Site list response was not a list.");
+		rows = rows.filter(r => Number(r.Id) !== PROVINCIAL_ID && !seen.has(Number(r.Id)));
+		if (!rows.length) break;
+		for (const r of rows) {
+			seen.add(Number(r.Id));
+			if (Number(r.Distance) <= maxKm && !isSickKids(r)) sites.push(siteFromApi(r));
+		}
+		if (Number(rows[rows.length - 1].Distance) > maxKm) break;
+	}
+	return sites;
+}
+function parseChart(rows) {
+	if (!Array.isArray(rows)) throw new ApiError("History response was not a list.");
+	const h = {p90: {}, within: {}, cases: {}, targets: {}};
+	let newest = null;
+	for (const m of rows) {
+		if (!m || m.Key == null) continue;
+		const key = String(m.Key).trim(), w = {};
+		for (const x of m.WaitTimes || []) { const pid = parseInt(x.PriorityId, 10); if (!Number.isNaN(pid)) w[pid] = x; }
+		const pick = f => Object.fromEntries(PRIORITIES.map(p => [p, parseNumber((w[p] || {})[f])]));
+		h.p90[key] = pick("WaitTime90percentile");
+		h.within[key] = pick("WaitTimePercentWithinTarget");
+		h.cases[key] = pick("NumberOfCases");
+		if (newest === null || key > newest) { newest = key; h.targets = pick("Target"); }
+	}
+	return h;
+}
+const siteHistory = async (id, svc) => parseChart(await fetchJson(svc.chartUrl(id)));
+async function fetchHistories(ids, svc) {
+	const out = new Map(), queue = [...ids];
+	const worker = async () => { while (queue.length) { const id = queue.shift(); out.set(id, await siteHistory(id, svc)); } };
+	await Promise.all(Array.from({length: Math.min(WORKERS, ids.length)}, worker));
+	return new Map(ids.map(id => [id, out.get(id)]));
+}
+async function procedures() {
+	const rows = await fetchJson(`${BASE}/surgery/getsurgeriesbyname/surgical/${LANG}/${AGE}/`);
+	if (!Array.isArray(rows)) throw new ApiError("Procedure list response was not a list.");
+	const seen = new Map();
+	for (const r of rows) {
+		const name = String(r.NameEn || "").replace(/\s+/g, " ").trim();
+		const id = Number(r.Id);
+		if (name && !seen.has(id)) seen.set(id, {id, name, typeId: Number(r.ModalityTypeID), modalityId: Number(r.ModalityID)});
+	}
+	return [...seen.values()].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+}
+function findProcedures(query, items) {
+	const words = String(query || "").toLowerCase().split(/\s+/).filter(Boolean);
+	if (!words.length) return [...items];
+	const q = words.join(" ");
+	return items.filter(p => words.every(w => p.name.toLowerCase().includes(w)))
+		.sort((a, b) => (!a.name.toLowerCase().startsWith(q)) - (!b.name.toLowerCase().startsWith(q)) || a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+}
+
+// ---------------------------------------------------------------- history helpers
+function recordingSince(h, p) {
+	const months = Object.keys(h.p90).sort();
+	const rep = months.filter(m => h.p90[m][p] != null);
+	if (!rep.length) return [null, 0, 0];
+	return [rep[0], rep.length, months.filter(m => m >= rep[0]).length];
+}
+function withinLatest(h, p, month) {
+	if (month != null) return [month, (h.within[month] || {})[p] ?? null];
+	for (const m of Object.keys(h.within).sort().reverse()) { const v = h.within[m][p]; if (v != null) return [m, v]; }
+	return [null, null];
+}
+function withinMean(h, p, months) {
+	const vals = months.filter(m => h.within[m] && h.within[m][p] != null).map(m => h.within[m][p]);
+	return vals.length ? mean(vals) : null;
+}
+function withinPeriod(h, p, months) {
+	let num = 0, den = 0;
+	for (const m of months) {
+		const w = (h.within[m] || {})[p], n = (h.cases[m] || {})[p];
+		if (w != null && n) { num += w * n; den += n; }
+	}
+	return den > 0 ? num / den : withinMean(h, p, months);
+}
+const monthKeys = hists => [...new Set([...hists.values()].flatMap(h => Object.keys(h.p90)))].sort();
+
+// ---------------------------------------------------------------- analysis
+function summarize(site, p90, p, months) {
+	if (!months.length) return null;
+	const latest = months[months.length - 1], win = months.slice(-WINDOW);
+	const vals = win.filter(m => p90[m] && p90[m][p] != null).map(m => p90[m][p]);
+	if (!vals.length) return null;
+	return {site, latest: (p90[latest] || {})[p] ?? null, median: median(vals), monthsAvailable: vals.length};
+}
+function rank(sites, hists, p) {
+	const months = monthKeys(hists);
+	const rows = sites.map(s => summarize(s, (hists.get(s.id) || {p90: {}}).p90, p, months)).filter(Boolean);
+	rows.sort((a, b) => a.median - b.median || (a.latest ?? 9e9) - (b.latest ?? 9e9));
+	return rows;
+}
+function spearman(a, b) {
+	const n = a.length;
+	const ranks = x => { const order = x.map((v, i) => i).sort((i, j) => x[i] - x[j] || i - j); const r = new Array(n); order.forEach((i, pos) => { r[i] = pos; }); return r; };
+	const ra = ranks(a), rb = ranks(b);
+	return 1 - 6 * ra.reduce((s, v, i) => s + (v - rb[i]) ** 2, 0) / (n * (n * n - 1));
+}
+function persistence(hists, p) {
+	const months = monthKeys(hists), out = [];
+	for (const lag of LAGS) {
+		const rhos = [], kept = [], chance = [];
+		for (let i = 0; i < months.length - lag; i++) {
+			const m0 = months[i], m1 = months[i + lag];
+			const ids = [...hists.keys()].filter(k => { const h = hists.get(k).p90; return h[m0] && h[m0][p] != null && h[m1] && h[m1][p] != null; });
+			if (ids.length < MIN_SITES) continue;
+			const x = ids.map(k => hists.get(k).p90[m0][p]), y = ids.map(k => hists.get(k).p90[m1][p]);
+			rhos.push(spearman(x, y));
+			const leader = ids[x.indexOf(Math.min(...x))];
+			const top3 = [...ids].sort((a, b) => hists.get(a).p90[m1][p] - hists.get(b).p90[m1][p]).slice(0, 3);
+			kept.push(top3.includes(leader) ? 1 : 0);
+			chance.push(3 / ids.length);
+		}
+		if (rhos.length) out.push({lag, rho: mean(rhos), kept: mean(kept), chance: mean(chance), pairs: rhos.length});
+	}
+	return out;
+}
+
+// ---------------------------------------------------------------- breast screening (snapshot)
+function screeningFromRaw(r, lat, lng) {
+	const a = r.address || {};
+	const excluded = String(r.wtExcluded || "").toUpperCase() === "Y";
+	const days = excluded ? null : parseNumber(r.waitTimeDays);
+	const hours = {};
+	for (const d of WEEKDAYS) {
+		const h = (r.hours || {})[d];
+		hours[d] = h && h.startTime && h.endTime ? `${formatHour(h.startTime)} to ${formatHour(h.endTime)}` : "Closed";
+	}
+	const langs = r.languages || {};
+	const spoken = [["english", "English"], ["french", "French"]].filter(([k]) => langs[k]).map(([, n]) => n);
+	let toll = formatPhone(r.tollFree);
+	if (toll && !toll.startsWith("1-")) toll = "1-" + toll;
+	const waitText = days != null ? (String(r.waitTime || "").trim() || `${g(days)} days`) : "Not available";
+	const m = /^\s*(\d+)/.exec(waitText);
+	const s = {
+		id: String(r.id || ""), name: String(r.name || "").trim(),
+		address: [a.line_1, a.line_2].filter(x => x && String(x).trim()).map(x => String(x).trim()).join(", "),
+		city: String(a.city || "").trim(), postalCode: String(a.postalCode || "").trim(),
+		distanceKm: haversineKm(lat, lng, Number(r.latitude || 0), Number(r.longitude || 0)),
+		waitDays: days, waitText, phone: formatPhone(r.phone1), ext: String(r.ext1 || "").trim(), tollFree: toll,
+		hours, accessible: String(r.accessibility || "").toUpperCase() === "Y", languages: spoken.join(" and "),
+		lastUpdated: parseIsoDate(r.lastUpdated),
+	};
+	s.band = m && days != null ? Number(m[1]) : (days || 0) / 7;
+	s.fullAddress = [s.address, [s.city, s.postalCode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+	return s;
+}
+const screeningKey = s => [s.waitDays == null ? 1 : 0, s.band, s.distanceKm];
+function cmpTuple(a, b) {
+	for (let i = 0; i < Math.max(a.length, b.length); i++) {
+		const x = a[i], y = b[i];
+		if (x === y) continue;
+		if (typeof x === "string" || typeof y === "string") return String(x).localeCompare(String(y));
+		return x < y ? -1 : 1;
+	}
+	return 0;
+}
+
+// ---------------------------------------------------------------- contacts
+const CONTACTS = new Map(((window.CT_CONTACTS || {}).sites || []).map(s => [Number(s.id), s]));
+const CHECKED = (window.CT_CONTACTS || {}).checked || "";
+const contactFor = id => CONTACTS.get(Number(id)) || null;
+const imagingFax = (c, modality) => modality === "MRI" ? (c.mri_fax || c.di_fax) : c.di_fax;
+
+// ---------------------------------------------------------------- one-shot analysis
+async function analyze(postal, radius, svc, priority) {
+	const code = normalizePostal(postal);
+	radius = normalizeRadius(radius);
+	const p = svc.hasHistory ? priority : null;
+	const [lat, lng] = await geocode(code);
+	if (svc.isScreening) {
+		const snap = window.CT_SCREENING;
+		if (!snap || !Array.isArray(snap.sites)) throw new ApiError("Breast screening data is not available in this copy of the page.");
+		const scr = snap.sites.map(r => screeningFromRaw(r, lat, lng)).filter(s => s.distanceKm <= radius);
+		scr.sort((a, b) => cmpTuple(screeningKey(a), screeningKey(b)));
+		if (!scr.length) throw new ApiError(`No breast screening sites found within ${g(radius)} km of ${code}.`);
+		const dates = scr.map(s => s.lastUpdated).filter(Boolean).sort((a, b) => a - b);
+		return {postal: code, svc, priority: null, radius, latestMonth: null, lastUpdated: formatDate(dates[dates.length - 1]),
+			screening: scr, screeningComplete: snap.complete !== false, today: new Date()};
+	}
+	const sites = await nearbySites(lat, lng, radius, svc);
+	if (!sites.length) throw new ApiError(`No sites report ${svc.label} within ${g(radius)} km of ${code}.`);
+	const hists = await fetchHistories([...sites.map(s => s.id), PROVINCIAL_ID], svc);
+	const province = hists.get(PROVINCIAL_ID) || null;
+	hists.delete(PROVINCIAL_ID);
+	const months = monthKeys(hists);
+	const rows = rank(sites, hists, p);
+	const ranked = new Set(rows.map(r => r.site.id));
+	const noData = sites.filter(s => !ranked.has(s.id)).map(s => ({site: s, latest: null, median: null, monthsAvailable: 0}));
+	const latest = months.length ? months[months.length - 1] : null;
+	return {postal: code, svc, priority: p, radius, latestMonth: latest, lastUpdated: monthLong(latest),
+		sites, hists, province, provinceRow: province ? summarize(PROVINCE_SITE, province.p90, p, months) : null,
+		rows, noData, lagStats: persistence(hists, p), window: months.slice(-WINDOW), today: new Date()};
+}
+
+// ---------------------------------------------------------------- chart
+const measureCtx = document.createElement("canvas").getContext("2d");
+function textWidth(t, size = 11) { measureCtx.font = `${size}px "Segoe UI", Tahoma, Arial, sans-serif`; return measureCtx.measureText(t).width; }
+const SVG = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs) { const e = document.createElementNS(SVG, tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); return e; }
+function niceStep(span) {
+	const raw = span / 4 || 1;
+	const mag = 10 ** String(Math.trunc(raw)).length / 10;
+	for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * mag) return m * mag;
+	return 10 * mag;
+}
+function lineChart(months, series, target, yTitle, W = 500, H = 230) {
+	const svg = svgEl("svg", {width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: "chart", "font-family": '"Segoe UI", Tahoma, Arial, sans-serif', "font-size": 11});
+	const lh = 16, L = 46, R = 12, T = Math.round(lh * 2.4), B = Math.round(lh * 1.8);
+	const vals = series.flatMap(s => s.ys.filter(v => v != null));
+	if (target != null) vals.push(target);
+	const text = (x, y, t, attrs) => { const e = svgEl("text", Object.assign({x, y, fill: "#3C4043"}, attrs || {})); e.textContent = t; svg.append(e); return e; };
+	if (!months.length || !vals.length) { text(W / 2, H / 2, "No reported values to graph.", {"text-anchor": "middle", "font-size": 12}); return svg; }
+	const step = niceStep(Math.max(...vals)), ymax = step * (Math.floor(Math.max(...vals) / step) + 1);
+	const n = months.length;
+	const X = i => L + (W - L - R) * i / Math.max(1, n - 1);
+	const Y = v => T + (H - T - B) * (1 - v / ymax);
+	const x0 = L, x1 = W - R, y0 = T, y1 = H - B;
+	for (let v = 0; v <= ymax + 1e-9; v += step) {
+		svg.append(svgEl("line", {x1: x0, y1: Y(v), x2: x1, y2: Y(v), stroke: "#E1E4E8"}));
+		text(x0 - 6, Y(v) + 4, g(v), {"text-anchor": "end"});
+	}
+	months.forEach((m, i) => {
+		if (m.endsWith("01") || i === 0) {
+			svg.append(svgEl("line", {x1: X(i), y1: y0, x2: X(i), y2: y1, stroke: "#E1E4E8"}));
+			text(X(i), y1 + 15, m.endsWith("01") ? m.slice(0, 4) : monthShort(m), {"text-anchor": "middle"});
+		}
+	});
+	svg.append(svgEl("line", {x1: x0, y1: y1, x2: x1, y2: y1, stroke: "#B8BEC6"}));
+	svg.append(svgEl("line", {x1: x0, y1: y0, x2: x0, y2: y1, stroke: "#B8BEC6"}));
+	text(x0, 15, yTitle, {fill: "#111111"});
+	if (target != null) svg.append(svgEl("line", {x1: x0, y1: Y(target), x2: x1, y2: Y(target), stroke: "#B3261E", "stroke-width": 1.5, "stroke-dasharray": "5 3"}));
+	for (const s of series) {
+		let run = [];
+		const flush = () => {
+			if (run.length >= 2) svg.append(svgEl("polyline", {points: run.map(([x, y]) => `${x},${y}`).join(" "), fill: "none", stroke: s.color, "stroke-width": 2}));
+			else if (run.length === 1) svg.append(svgEl("circle", {cx: run[0][0], cy: run[0][1], r: 2.5, fill: s.color}));
+			run = [];
+		};
+		s.ys.forEach((v, i) => { if (v != null) run.push([X(i), Y(v)]); else flush(); });
+		flush();
+	}
+	let lx = x0;
+	const ly = 4 + lh * 1.5;
+	const items = series.map(s => [s.name, s.color, null]);
+	if (target != null) items.push([`Target: ${g(target)} days`, "#B3261E", "5 3"]);
+	for (const [name, color, dash] of items) {
+		const ln = svgEl("line", {x1: lx, y1: ly + 2, x2: lx + 18, y2: ly + 2, stroke: color, "stroke-width": 2});
+		if (dash) ln.setAttribute("stroke-dasharray", dash);
+		svg.append(ln);
+		text(lx + 22, ly + 6, name, {fill: "#111111"});
+		lx += 22 + textWidth(name) + 14;
+	}
+	const hover = svgEl("g", {"pointer-events": "none"});
+	svg.append(hover);
+	const overlay = svgEl("rect", {x: 0, y: 0, width: W, height: H, fill: "transparent"});
+	svg.append(overlay);
+	overlay.addEventListener("mouseleave", () => { hover.innerHTML = ""; });
+	overlay.addEventListener("mousemove", e => {
+		const box = svg.getBoundingClientRect();
+		const mx = (e.clientX - box.left) * (W / box.width);
+		const span = (W - L - R) / Math.max(1, n - 1);
+		const i = n > 1 ? Math.min(n - 1, Math.max(0, Math.round((mx - L) / span))) : 0;
+		const x = X(i);
+		hover.innerHTML = "";
+		hover.append(svgEl("line", {x1: x, y1: T, x2: x, y2: H - B, stroke: "#B8BEC6"}));
+		const lines = [monthLong(months[i])];
+		for (const s of series) {
+			const v = s.ys[i];
+			lines.push(`${s.name}: ${v == null ? "n/a" : g(v) + " days"}`);
+			if (v != null) hover.append(svgEl("circle", {cx: x, cy: Y(v), r: 3.5, fill: "#FFFFFF", stroke: s.color, "stroke-width": 2}));
+		}
+		const w = Math.max(...lines.map(t => textWidth(t))), h = lines.length * 14;
+		const tx = x + 10 + w < W - 4 ? x + 10 : x - 10 - w, ty = T + 4;
+		hover.append(svgEl("rect", {x: tx - 5, y: ty - 4, width: w + 10, height: h + 8, fill: "#FFFFFF", stroke: "#B8BEC6"}));
+		lines.forEach((t, k) => { const e = svgEl("text", {x: tx, y: ty + 11 + k * 14, fill: "#111111"}); e.textContent = t; hover.append(e); });
+	});
+	return svg;
+}
+
+// ---------------------------------------------------------------- UI state
+const $ = id => document.getElementById(id);
+const state = {analysis: null, specs: [], sortCol: 3, sortDesc: false, openId: null, selId: null, procs: [], selectedProc: null,
+	targets: new Map(), targetsLoading: new Set(), busy: false, headings: ["Site", "km", "", ""]};
+
+function kind() { return document.querySelector("input[name=kind]:checked").value; }
+function imagingCode() { return ({"CT": "CT", "MRI": "MRI", "Breast screening": "BREAST"})[$("imaging").value]; }
+
+// ---------------------------------------------------------------- form behaviour
+function onKind() {
+	const surgery = kind() === "surgery";
+	$("imagingOpts").hidden = surgery;
+	$("surgeryOpts").hidden = !surgery;
+	if (!surgery) hideList();
+	const screening = !surgery && $("imaging").value === "Breast screening";
+	$("priority").disabled = screening;
+	$("prioHelp").hidden = screening;
+	if (surgery && !state.procs.length) loadProcedures();
+}
+document.querySelectorAll("input[name=kind]").forEach(r => r.addEventListener("change", onKind));
+$("imaging").addEventListener("change", onKind);
+$("wait").addEventListener("change", loadTargets);
+
+let procsLoading = false;
+async function loadProcedures() {
+	if (procsLoading) return;
+	procsLoading = true;
+	const box = $("proc");
+	box.disabled = true;
+	box.value = "Loading procedures...";
+	try {
+		state.procs = await procedures();
+		box.disabled = false;
+		box.value = "";
+	} catch (e) {
+		box.value = "Procedure list unavailable";
+		if (kind() === "surgery") alert(`Could not load the procedure list: ${e.message}`);
+	} finally {
+		procsLoading = false;
+	}
+}
+
+// procedure search-select
+let shown = [], active = -1;
+function showMatches() {
+	const box = $("proc");
+	if (box.disabled || !state.procs.length) return;
+	let text = box.value;
+	if (state.selectedProc && text === state.selectedProc.name) text = "";
+	shown = findProcedures(text, state.procs).slice(0, 60);
+	const list = $("procList");
+	list.innerHTML = "";
+	if (!shown.length) { hideList(); return; }
+	shown.forEach((p, i) => {
+		const li = el("li", {text: p.name});
+		li.addEventListener("mousedown", e => { e.preventDefault(); pick(p); });
+		li.addEventListener("mousemove", () => setActive(i));
+		list.append(li);
+	});
+	list.style.width = Math.max(box.offsetWidth, 320) + "px";
+	list.hidden = false;
+	active = -1;
+}
+function setActive(i) {
+	const items = $("procList").children;
+	if (active >= 0 && items[active]) items[active].classList.remove("active");
+	active = i;
+	if (items[i]) { items[i].classList.add("active"); items[i].scrollIntoView({block: "nearest"}); }
+}
+function hideList() { $("procList").hidden = true; active = -1; }
+function pick(p) {
+	state.selectedProc = p;
+	$("proc").value = p.name;
+	hideList();
+	loadTargets();
+}
+$("proc").addEventListener("input", () => {
+	if (state.selectedProc && $("proc").value !== state.selectedProc.name) state.selectedProc = null;
+	showMatches();
+});
+$("proc").addEventListener("click", showMatches);
+$("proc").addEventListener("blur", () => setTimeout(hideList, 150));
+$("proc").addEventListener("keydown", e => {
+	const open = !$("procList").hidden;
+	if (e.key === "ArrowDown") { e.preventDefault(); if (!open) showMatches(); setActive(Math.min(shown.length - 1, active + 1)); }
+	else if (e.key === "ArrowUp") { e.preventDefault(); if (open) setActive(Math.max(0, active - 1)); }
+	else if (e.key === "Escape") hideList();
+	else if (e.key === "Enter") {
+		e.preventDefault();
+		e.stopPropagation();
+		if (open && shown.length) {
+			const exact = shown.find(p => p.name.toLowerCase() === $("proc").value.trim().toLowerCase());
+			pick(active >= 0 ? shown[active] : (exact || shown[0]));
+		} else search();
+	}
+});
+
+// priority tooltip
+function priorityHelp() {
+	if (kind() !== "surgery") return PRIORITY_HELP;
+	const labels = {2: "P2-- Urgent", 3: "P3-- Semi-Urgent", 4: "P4-- Non-Urgent/Elective"};
+	const proc = state.selectedProc;
+	if (!proc) return Object.values(labels).join("\n") + "\nPick a procedure to see its targets.";
+	const t = state.targets.get(`${proc.id}:${$("wait").value}`);
+	if (!t) { loadTargets(); return Object.values(labels).join("\n") + "\nLoading this procedure's targets."; }
+	return PRIORITIES.map(p => t[p] != null ? `${labels[p]}; ${g(t[p])} day target` : `${labels[p]}; no target published`).join("\n");
+}
+async function loadTargets() {
+	const proc = state.selectedProc;
+	if (!proc) return;
+	const wait = Number($("wait").value), key = `${proc.id}:${wait}`;
+	if (state.targets.has(key) || state.targetsLoading.has(key)) return;
+	state.targetsLoading.add(key);
+	try { state.targets.set(key, (await siteHistory(PROVINCIAL_ID, service("SURGERY", proc, wait))).targets); }
+	catch (e) { /* the tooltip keeps its loading text */ }
+	finally { state.targetsLoading.delete(key); }
+}
+let tipTimer = null;
+$("prioHelp").addEventListener("mouseenter", () => {
+	clearTimeout(tipTimer);
+	tipTimer = setTimeout(() => {
+		const tip = $("tip"), r = $("prioHelp").getBoundingClientRect();
+		tip.textContent = priorityHelp();
+		tip.style.left = (r.left + 4) + "px";
+		tip.style.top = (r.bottom + 4) + "px";
+		tip.hidden = false;
+	}, 300);
+});
+$("prioHelp").addEventListener("mouseleave", () => { clearTimeout(tipTimer); $("tip").hidden = true; });
+
+// advanced
+$("advToggle").addEventListener("click", () => {
+	const open = $("advBox").hidden;
+	$("advBox").hidden = !open;
+	$("advToggle").innerHTML = open ? "&#9650; Hide advanced" : "&#9660; Show advanced";
+});
+
+// ---------------------------------------------------------------- search
+function currentService() {
+	if (kind() === "surgery") {
+		let proc = state.selectedProc;
+		if (!proc) {
+			if (!state.procs.length) throw new Error("The procedure list has not loaded yet. Check the connection and try again.");
+			const text = $("proc").value.trim().toLowerCase();
+			proc = state.procs.find(p => p.name.toLowerCase() === text);
+			if (!proc) throw new Error('Choose a procedure from the list. Start typing, for example "knee".');
+		}
+		return service("SURGERY", proc, Number($("wait").value));
+	}
+	return service(imagingCode());
+}
+function setBusy(b) {
+	state.busy = b;
+	$("searchBtn").hidden = b;
+	$("progress").hidden = !b;
+	document.body.style.cursor = b ? "wait" : "";
+}
+async function search() {
+	if (state.busy) return;
+	let svc, postal, radius, priority;
+	try {
+		svc = currentService();
+		postal = normalizePostal($("postal").value);
+		radius = normalizeRadius($("radius").value);
+		priority = Number($("priority").value);
+	} catch (e) { alert(e.message); return; }
+	hideList();
+	setBusy(true);
+	try {
+		const a = await analyze(postal, radius, svc, priority);
+		setBusy(false);
+		show(a);
+	} catch (e) {
+		setBusy(false);
+		alert(e.message || String(e));
+	}
+}
+$("searchBtn").addEventListener("click", search);
+document.addEventListener("keydown", e => {
+	if (e.key !== "Enter" || e.defaultPrevented) return;
+	if (e.target === $("proc") || e.target === $("tablewrap")) return;
+	if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target === document.body) search();
+});
+
+// ---------------------------------------------------------------- results table
+// The last postal code is remembered in this browser only.
+const POSTAL_KEY = "ctwaits.postal";
+function rememberPostal(code) { try { localStorage.setItem(POSTAL_KEY, code); } catch (e) { /* storage blocked */ } }
+function recallPostal() { try { return localStorage.getItem(POSTAL_KEY) || ""; } catch (e) { return ""; } }
+
+function show(a) {
+	state.analysis = a;
+	rememberPostal(a.postal);
+	const svc = a.svc;
+	let specs = [], hint = RESULTS_HINT;
+	if (svc.isScreening) {
+		state.headings = ["Site", "km", "Estimated wait", ""];
+		specs = a.screening.map((s, i) => ({id: "s" + i, values: [s.name, s.distanceKm.toFixed(1), s.waitText, ""],
+			keys: [s.name.toLowerCase(), s.distanceKm, s.waitDays != null ? screeningKey(s) : null, null],
+			kind: s.waitDays != null ? "site" : "nodata", build: f => screeningDetail(f, s)}));
+		state.sortCol = 2;
+		if (!a.screeningComplete) hint += " " + SCREENING_CAP_NOTE;
+	} else {
+		state.headings = ["Site", "km", `Latest ${P90_LABEL}`, "12-mo median"];
+		const spec = (r, k, i) => {
+			const isProv = r.site.id === PROVINCIAL_ID, km = isProv ? null : r.site.distanceKm;
+			return {id: "r" + i, values: [r.site.name, km == null ? "" : km.toFixed(1), fmtDays(r.latest), fmtDays(r.median)],
+				keys: [r.site.name.toLowerCase(), km, r.latest, r.median == null ? null : [r.median, r.latest ?? 9e9]],
+				kind: k, build: f => historyDetail(f, r)};
+		};
+		specs = a.rows.map((r, i) => spec(r, "site", i));
+		if (a.provinceRow) specs.push(spec(a.provinceRow, "province", specs.length));
+		a.noData.forEach(r => specs.push(spec(r, "nodata", specs.length)));
+		state.sortCol = 3;
+	}
+	$("resultsHint").textContent = hint;
+	state.specs = specs;
+	state.sortDesc = false;
+	state.openId = null;
+	const first = sortedSpecs().find(s => s.kind === "site");
+	state.selId = first ? first.id : null;
+	state.openId = state.selId;
+	render();
+	$("tablewrap").scrollTop = 0;
+	fillLags(a);
+	$("updated").textContent = a.lastUpdated ? `. Ontario Health last updated: ${a.lastUpdated}.` : ".";
+	$("exportBtn").disabled = false;
+}
+function cmpKey(a, b) {
+	if (Array.isArray(a)) return cmpTuple(a, b);
+	if (typeof a === "string") return a.localeCompare(b);
+	return a - b;
+}
+function sortedSpecs() {
+	const col = state.sortCol, desc = state.sortDesc;
+	const ordered = list => {
+		const has = list.filter(s => s.keys[col] != null), none = list.filter(s => s.keys[col] == null);
+		has.sort((x, y) => desc ? cmpKey(y.keys[col], x.keys[col]) : cmpKey(x.keys[col], y.keys[col]));
+		return has.concat(none);
+	};
+	return ordered(state.specs.filter(s => s.kind !== "nodata")).concat(ordered(state.specs.filter(s => s.kind === "nodata")));
+}
+function drawHeadings() {
+	document.querySelectorAll("#tree th").forEach((th, i) => {
+		let t = state.headings[i];
+		if (i === state.sortCol && t && state.specs.length) t += state.sortDesc ? " (desc)" : " (asc)";
+		th.textContent = t;
+		th.title = t;
+		th.append(el("span", {class: "grip"}));
+	});
+	attachGrips();
+}
+function render() {
+	drawHeadings();
+	const tb = $("tbody");
+	tb.innerHTML = "";
+	if (!state.specs.length) { tb.append(el("tr", {}, el("td", {colspan: 4, class: "empty", text: "No sites with data matched this search."}))); return; }
+	for (const s of sortedSpecs()) {
+		const tr = el("tr", {class: `row ${s.kind}${s.id === state.selId ? " sel" : ""}`, "data-id": s.id});
+		s.values.forEach((v, i) => tr.append(el("td", {class: i === 0 ? "" : "num", text: v, title: i === 0 ? v : ""})));
+		tr.addEventListener("click", () => toggle(s.id));
+		tb.append(tr);
+		if (s.id === state.openId) {
+			const panel = el("div", {class: "panel"});
+			s.build(panel);
+			tb.append(el("tr", {class: "detail"}, el("td", {colspan: 4}, panel)));
+		}
+	}
+}
+function toggle(id) {
+	state.selId = id;
+	state.openId = state.openId === id ? null : id;
+	render();
+	const row = document.querySelector(`#tbody tr[data-id="${id}"]`);
+	if (row) {
+		const det = row.nextElementSibling;
+		if (det && det.classList.contains("detail")) det.scrollIntoView({block: "nearest"});
+		row.scrollIntoView({block: "nearest"});
+	}
+}
+document.querySelectorAll("#tree th").forEach((th, i) => th.addEventListener("click", e => {
+	if (e.target.classList.contains("grip") || justResized) return;
+	if (!state.specs.length || !state.headings[i]) return;
+	state.sortDesc = i === state.sortCol ? !state.sortDesc : false;
+	state.sortCol = i;
+	render();
+}));
+$("tablewrap").addEventListener("keydown", e => {
+	const order = sortedSpecs();
+	if (!order.length) return;
+	let i = order.findIndex(s => s.id === state.selId);
+	if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+		e.preventDefault();
+		i = e.key === "ArrowDown" ? Math.min(order.length - 1, i + 1) : Math.max(0, i - 1);
+		state.selId = order[i].id;
+		render();
+		const row = document.querySelector(`#tbody tr[data-id="${state.selId}"]`);
+		if (row) row.scrollIntoView({block: "nearest"});
+	} else if ((e.key === "Enter" || e.key === " ") && i >= 0) {
+		e.preventDefault();
+		toggle(order[i].id);
+	}
+});
+
+// draggable column boundaries
+let justResized = false;
+function attachGrips() {
+	const cols = document.querySelectorAll("#tree col");
+	document.querySelectorAll("#tree th .grip").forEach((grip, i) => {
+		grip.addEventListener("mousedown", e => {
+			e.preventDefault();
+			e.stopPropagation();
+			const target = i === 0 ? 1 : i;  // the Site column stretches, so its boundary moves the km column
+			const sign = i === 0 ? -1 : 1;
+			const startX = e.clientX, startW = cols[target].getBoundingClientRect().width || parseFloat(cols[target].style.width);
+			const move = ev => { cols[target].style.width = Math.max(40, startW + sign * (ev.clientX - startX)) + "px"; };
+			const up = () => {
+				document.removeEventListener("mousemove", move);
+				document.removeEventListener("mouseup", up);
+				justResized = true;
+				setTimeout(() => { justResized = false; }, 50);
+			};
+			document.addEventListener("mousemove", move);
+			document.addEventListener("mouseup", up);
+		});
+	});
+}
+
+function fillLags(a) {
+	const tb = $("lagBody");
+	tb.innerHTML = "";
+	const row = vals => tb.append(el("tr", {}, ...vals.map(v => el("td", {text: v}))));
+	for (const s of a.lagStats || []) row([String(s.lag), (s.rho >= 0 ? "+" : "") + s.rho.toFixed(2), roundHalfEven(100 * s.kept) + "%", roundHalfEven(100 * s.chance) + "%", String(s.pairs)]);
+	if (a.svc.isScreening) row(["n/a", "no monthly history", "", "", ""]);
+	else if (!(a.lagStats || []).length) row(["n/a", "too few sites", "", "", ""]);
+}
+
+// ---------------------------------------------------------------- detail panels
+function infoGrid(parent, rows, cls) {
+	const grid = el("div", {class: "info"});
+	for (const [k, v] of rows) {
+		grid.append(el("div", {class: "k", text: k}));
+		const cell = el("div", {class: "v"});
+		if (v instanceof Node) cell.append(v); else cell.textContent = String(v);
+		grid.append(cell);
+	}
+	parent.append(grid);
+	if (cls) parent.classList.add(cls);
+}
+function contactBox(site, svc) {
+	const box = el("div", {});
+	const c = contactFor(site.id);
+	const lines = [];
+	let sources = [];
+	if (c) {
+		sources = (c.source_urls || []).slice(0, 2);
+		if (c.main_phone) lines.push([`Main line: ${c.main_phone}`, false]);
+		if (svc.isSurgery) {
+			lines.push([`Surgical referral fax: ${c.surgery_fax || "not published; ask the main line"}`, false]);
+			const name = svc.procedure.name.toLowerCase();
+			if (name.includes("hip") || name.includes("knee")) for (const i of c.msk_intake || []) { lines.push([`${i.label} fax: ${i.fax}`, false]); sources.push(i.source); }
+		} else {
+			if (c.di_phone) lines.push([`Imaging booking: ${c.di_phone}`, false]);
+			const fax = imagingFax(c, svc.modality);
+			const hub = (c.regional_intake || []).find(i => fax && i.fax === fax);
+			lines.push([`${svc.modality} requisition fax: ${fax || "not published"}${hub ? ` (${hub.label})` : ""}`, false]);
+			for (const i of (c.regional_intake || []).filter(i => (i.modalities || []).includes(svc.modality))) {
+				if (i !== hub) lines.push([`${i.label} fax: ${i.fax}`, false]);
+				if (i.note) lines.push([i.note, true]);
+				sources.push(i.source);
+			}
+		}
+	}
+	if (c && lines.length) {
+		for (const [t, m] of lines) box.append(el("div", {class: m ? "m" : "", text: t}));
+		const byDomain = new Map();
+		for (const u of sources) if (u && !byDomain.has(domainOf(u))) byDomain.set(domainOf(u), u);
+		if (byDomain.size) {
+			const src = el("div", {class: "m"}, byDomain.size > 1 ? "Sources: " : "Source: ");
+			[...byDomain.entries()].slice(0, 3).forEach(([d, u], i) => { if (i) src.append(", "); src.append(link(d, u)); });
+			box.append(src);
+		}
+		const checked = (c.checked || CHECKED) ? `Checked ${formatDate(parseIsoDate(c.checked || CHECKED))}. ` : "";
+		const caution = c.confidence === "low" ? "Found in a directory listing; confirm with the hospital before faxing."
+			: c.verified === false ? "The source page could not be re-checked automatically; confirm before faxing."
+			: "Confirm the fax number before sending patient information.";
+		box.append(el("div", {class: "m", text: checked + caution}));
+	} else {
+		box.append(el("div", {text: "No published phone or fax number was found for this site."}));
+		const q = encodeURIComponent(`${site.name} ${svc.department} phone fax`).replace(/%20/g, "+");
+		box.append(el("div", {}, link("Search the web for this department's phone and fax", `https://www.google.com/search?q=${q}`)));
+	}
+	return box;
+}
+function historyDetail(panel, r) {
+	const a = state.analysis, p = a.priority, svc = a.svc;
+	const isProv = r.site.id === PROVINCIAL_ID;
+	const h = (isProv ? a.province : a.hists.get(r.site.id)) || {p90: {}, within: {}, cases: {}, targets: {}};
+	const months = [...new Set([...Object.keys(h.p90), ...Object.keys(a.province ? a.province.p90 : {})])].sort();
+	const series = [];
+	if (!isProv) series.push({name: "This site", ys: months.map(m => (h.p90[m] || {})[p] ?? null), color: "#0B57D0"});
+	if (a.province) series.push({name: "Ontario", ys: months.map(m => (a.province.p90[m] || {})[p] ?? null), color: "#5F6368"});
+	let target = h.targets ? h.targets[p] : null;
+	if (target == null && a.province) target = a.province.targets[p];
+	panel.append(lineChart(months, series, target ?? null, `Priority ${p}, ${P90_LABEL}, by month`));
+	const rows = [];
+	if (!isProv) {
+		rows.push(["Address", fullAddress(r.site) || "Not listed"]);
+		rows.push(["Contact and fax", contactBox(r.site, svc)]);
+	}
+	const [mo, pct] = withinLatest(h, p, a.latestMonth);
+	const pct12 = withinPeriod(h, p, a.window);
+	const tgt = target != null ? ` (${g(target)}-day target)` : "";
+	const latestLine = mo ? `${fmtPct(pct)} in ${monthLong(mo)}` : "n/a in the latest month";
+	rows.push([`% patients ${svc.withinVerb} within target time${tgt}`, `${latestLine}\n${fmtPct(pct12)} in last 12 months`]);
+	const [first, reported, total] = recordingSince(h, p);
+	rows.push(["Recording data since", first ? `${monthLong(first)} (reported in ${reported} of ${total} months)` : `No priority ${p} figures reported`]);
+	infoGrid(panel, rows);
+}
+function screeningDetail(panel, s) {
+	const contact = el("div", {});
+	const phone = s.phone ? s.phone + (s.ext ? `, ext. ${s.ext}` : "") : "not listed";
+	contact.append(el("div", {text: `Phone: ${phone}`}));
+	if (s.tollFree) contact.append(el("div", {text: `Toll-free: ${s.tollFree}`}));
+	contact.append(el("div", {text: "Fax: not published in Ontario Health's breast screening data"}));
+	const hours = WEEKDAYS.map(d => `${d[0].toUpperCase()}${d.slice(1)}: ${s.hours[d] || "Closed"}`).join("\n");
+	infoGrid(panel, [
+		["Address", s.fullAddress || "Not listed"],
+		["Contact and fax", contact],
+		["Estimated wait", s.waitText],
+		["Hours", hours],
+		["Wheelchair accessible", s.accessible ? "Yes" : "No"],
+		["Languages", s.languages || "Not listed"],
+		["Last updated", formatDate(s.lastUpdated) || "Not listed"],
+	], "screening");
+}
+
+// ---------------------------------------------------------------- export CSV
+function csvCell(v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }
+function exportCsv() {
+	const a = state.analysis;
+	if (!a) return;
+	const out = [], w = row => out.push(row.map(csvCell).join(","));
+	w(["source", "https://www.ontariohealth.ca", "ontario_health_last_updated", a.lastUpdated]);
+	w(["postal_code", a.postal, "service", a.svc.label, "priority", a.priority ?? "", "radius_km", a.radius.toFixed(1)]);
+	w([]);
+	if (a.svc.isScreening) {
+		w(["rank", "site", "address", "km", "estimated_wait", "wait_days", "phone", "ext", "toll_free", "wheelchair_accessible", "languages", "last_updated"]);
+		a.screening.forEach((s, i) => w([i + 1, s.name, s.fullAddress, s.distanceKm.toFixed(1), s.waitText, s.waitDays == null ? "" : g(s.waitDays),
+			s.phone, s.ext, s.tollFree, s.accessible ? "yes" : "no", s.languages, s.lastUpdated ? s.lastUpdated.toISOString().slice(0, 10) : ""]));
+	} else {
+		w(["rank", "site_id", "site", "address", "km", "latest_p90_wait_days", "median_12mo_p90_wait_days", "pct_within_target_latest",
+			"pct_within_target_12mo", "recording_since", "main_phone", "booking_phone", "fax"]);
+		const line = (rankNo, r, h) => {
+			const isProv = r.site.id === PROVINCIAL_ID;
+			let first = null, pct = null, pct12 = null;
+			if (h) { first = recordingSince(h, a.priority)[0]; pct = withinLatest(h, a.priority, a.latestMonth)[1]; pct12 = withinPeriod(h, a.priority, a.window); }
+			const c = isProv ? null : contactFor(r.site.id);
+			const fax = c ? (a.svc.isSurgery ? c.surgery_fax : imagingFax(c, a.svc.modality)) : null;
+			w([rankNo, r.site.id, r.site.name, fullAddress(r.site), isProv ? "" : r.site.distanceKm.toFixed(1), r.latest == null ? "" : g(r.latest),
+				r.median == null ? "" : g(r.median), pct == null ? "" : g(pct), pct12 == null ? "" : String(roundHalfEven(pct12)),
+				first ? monthLabel(first) : "", c && c.main_phone || "", c && !a.svc.isSurgery && c.di_phone || "", fax || ""]);
+		};
+		if (a.provinceRow) line("", a.provinceRow, a.province);
+		a.rows.forEach((r, i) => line(i + 1, r, a.hists.get(r.site.id)));
+		a.noData.forEach(r => line("", r, a.hists.get(r.site.id)));
+		w([]);
+		w(["lag_months", "mean_rho", "leader_top3_share", "chance_share", "pairs"]);
+		for (const s of a.lagStats) w([s.lag, s.rho.toFixed(3), s.kept.toFixed(3), s.chance.toFixed(3), s.pairs]);
+	}
+	const what = a.svc.isSurgery ? a.svc.procedure.name : a.svc.modality;
+	const slug = what.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").join("-");
+	const d = new Date(), iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+	const blob = new Blob(["﻿" + out.join("\r\n") + "\r\n"], {type: "text/csv;charset=utf-8"});
+	const url = URL.createObjectURL(blob);
+	const aEl = el("a", {href: url, download: `${iso}-waits-${a.postal.toLowerCase()}-${slug}${a.priority ? "-p" + a.priority : ""}.csv`});
+	document.body.append(aEl);
+	aEl.click();
+	aEl.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+$("exportBtn").addEventListener("click", exportCsv);
+
+// ---------------------------------------------------------------- start
+$("postal").value = recallPostal();
+drawHeadings();
+$("tbody").append(el("tr", {}, el("td", {colspan: 4, class: "empty", text: "No results yet."})));
+onKind();
+loadProcedures();
+</script>
+</body>
+</html>

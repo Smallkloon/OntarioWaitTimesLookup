@@ -1,0 +1,10 @@
+.venv/
+build/
+dist/
+tmp/
+__pycache__/
+*.pyc
+.pytest_cache/
+.claude/
+reference/
+_reports/
