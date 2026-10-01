@@ -17,7 +17,7 @@
 		margin: 0; background: var(--bg); color: var(--fg);
 		font: 12px "Segoe UI", Tahoma, Arial, sans-serif;
 	}
-	.app { display: flex; flex-direction: column; height: 100vh; min-width: 960px; padding: 10px 12px 10px; }
+	.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-width: 960px; padding: 10px 12px 10px; }
 	.line { display: flex; align-items: flex-end; flex-wrap: wrap; }
 	.line + .line { margin-top: 8px; }
 	.field { display: flex; flex-direction: column; margin-right: 16px; }
@@ -30,6 +30,7 @@
 	input[type=text]:focus, select:focus { border-color: var(--select); }
 	input[type=text]:disabled, select:disabled { background: #F0F0F0; color: #6D6D6D; border-color: #CCCCCC; }
 	select { padding: 0 2px; }
+	#imaging { width: 130px; } #wait { width: 230px; } #priority { width: 46px; }
 	.radios { display: flex; height: 21px; align-items: center; }
 	.radios label { margin-right: 12px; display: flex; align-items: center; gap: 3px; }
 	.radios input { margin: 0; }
@@ -37,7 +38,7 @@
 		font: inherit; height: 23px; min-width: 88px; padding: 0 10px; color: var(--fg);
 		background: #E1E1E1; border: 1px solid #ADADAD; border-radius: 0; cursor: default;
 	}
-	button:hover:not(:disabled) { background: #E5F1FB; border-color: #0078D7; }
+	@media (hover: hover) { button:hover:not(:disabled) { background: #E5F1FB; border-color: #0078D7; } }
 	button:active:not(:disabled) { background: #CCE4F7; border-color: #005499; }
 	button:disabled { color: #838383; background: #CCCCCC; border-color: #BFBFBF; }
 	.searchcell { position: relative; margin-right: 8px; }
@@ -60,12 +61,13 @@
 		flex: 1; overflow: auto; background: var(--white); border: 1px solid #828790; outline: none;
 	}
 	table.tree { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; }
+	#tree col.c-km { width: 70px; } #tree col.c-a { width: 250px; } #tree col.c-b { width: 130px; }
 	table.tree th {
 		position: sticky; top: 0; z-index: 2; background: var(--white); font-weight: normal; text-align: center;
 		padding: 4px 6px; border-right: 1px solid #E5E5E5; border-bottom: 1px solid #E5E5E5;
 		white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; cursor: default;
 	}
-	table.tree th:hover { background: #D9EBF9; border-right-color: #BCDCF4; }
+	@media (hover: hover) { table.tree th:hover { background: #D9EBF9; border-right-color: #BCDCF4; } }
 	table.tree th:active { background: #BCDCF4; }
 	table.tree th .grip { position: absolute; top: 0; right: -3px; width: 7px; height: 100%; cursor: col-resize; z-index: 3; }
 	table.tree td {
@@ -75,8 +77,10 @@
 	table.tree tr.row { cursor: default; }
 	table.tree tr.province td { background: var(--province); font-weight: bold; }
 	table.tree tr.nodata td { color: var(--nodata); }
-	table.tree tr.row:hover td { background: #EEF5FD; }
-	table.tree tr.row.province:hover td { background: #DDE7F4; }
+	@media (hover: hover) {
+		table.tree tr.row:hover td { background: #EEF5FD; }
+		table.tree tr.row.province:hover td { background: #DDE7F4; }
+	}
 	table.tree tr.sel td, table.tree tr.row.sel:hover td { background: var(--select); color: #FFFFFF; }
 	table.tree tr.detail td { padding: 2px 10px 10px 24px; background: var(--white); white-space: normal; height: auto; }
 	.empty { color: var(--muted); padding: 10px; }
@@ -98,7 +102,9 @@
 	.advtoggle { cursor: pointer; user-select: none; padding: 2px 0; align-self: flex-start; }
 	table.lag { border-collapse: collapse; background: var(--white); border: 1px solid #828790; }
 	table.lag th { font-weight: normal; padding: 4px 6px; border-right: 1px solid #E5E5E5; border-bottom: 1px solid #E5E5E5; }
-	table.lag th:hover { background: #D9EBF9; }
+	table.lag th:nth-child(1) { width: 100px; } table.lag th:nth-child(2), table.lag th:nth-child(3) { width: 150px; }
+	table.lag th:nth-child(4), table.lag th:nth-child(5) { width: 110px; }
+	@media (hover: hover) { table.lag th:hover { background: #D9EBF9; } }
 	table.lag td { padding: 2px 6px; text-align: right; height: 20px; }
 	.footer { margin-top: 4px; }
 	.title { font-size: 16px; font-weight: bold; margin: 0 0 8px; }
@@ -114,7 +120,83 @@
 	}
 	.ss-list li { padding: 1px 4px; white-space: nowrap; cursor: default; }
 	.ss-list li.active { background: #DCE7F7; }
+	.panel .chart { touch-action: pan-y; }
 	[hidden] { display: none !important; }
+
+	/* Touch screens: finger-sized controls at any width. */
+	@media (pointer: coarse) {
+		body { font-size: 14px; }
+		input[type=text], select { height: 38px; font-size: 16px; padding: 4px 8px; }
+		select { padding: 0 4px; }
+		#imaging { width: 170px; } #wait { width: 300px; } #priority { width: 64px; }
+		button { height: 40px; font-size: 15px; }
+		.progress { height: 40px; }
+		.radios { height: 38px; }
+		.radios label { margin-right: 20px; gap: 6px; }
+		.radios input { width: 20px; height: 20px; }
+		.help { display: inline-block; padding: 6px 8px; margin: -6px -8px -6px -4px; }
+		#tree col.c-a { width: 300px; } #tree col.c-b { width: 150px; }
+		table.tree th { padding: 8px 6px; }
+		table.tree td { height: 40px; padding: 8px 6px; }
+		table.tree th .grip { display: none; }
+		.ss-list { max-height: 50vh; }
+		.ss-list li { padding: 9px 8px; }
+		.advtoggle { padding: 10px 0; }
+		table.lag td { height: 32px; }
+		.footer { line-height: 1.6; }
+	}
+
+	/* Tablets and narrow windows: no desktop minimum width; the page scrolls instead of the table. */
+	@media (max-width: 959px) {
+		.app { min-width: 0; height: auto; min-height: 100vh; }
+		fieldset.results { flex: none; }
+		.tablewrap { flex: none; overflow: visible; }
+		#tree col.c-a { width: 170px; } #tree col.c-b { width: 120px; }
+		table.tree th { white-space: normal; vertical-align: bottom; line-height: 1.25; }
+		table.tree tr { scroll-margin-top: 64px; }
+		.lagwrap { overflow-x: auto; }
+	}
+
+	/* Phones: stacked form, compact table, detail panel in one column. */
+	@media (max-width: 640px) {
+		body { font-size: 14px; }
+		.app { padding: 12px 16px 20px; }
+		.title { font-size: 18px; line-height: 1.25; margin-bottom: 12px; }
+		input[type=text], select { height: 40px; font-size: 16px; padding: 4px 8px; }
+		select { padding: 0 4px; }
+		button, .progress { height: 42px; font-size: 15px; }
+		.line { gap: 10px 12px; }
+		.line + .line { margin-top: 10px; }
+		.field { margin-right: 0; min-width: 0; flex: 1 1 100%; }
+		.field.half, .field.act { flex: 1 1 calc(50% - 6px); }
+		.field.grow { flex: 1 1 calc(100% - 88px); }  /* shares its row with Priority */
+		.field.prio { flex: 0 0 76px; }
+		.field.act > .cap { display: none; }
+		#surgeryOpts:not([hidden]) { display: contents; }
+		.field input[type=text], .ss, #imaging, #wait, #priority { width: 100%; }
+		.searchcell { margin-right: 0; }
+		.field.act button, .progress { width: 100%; min-width: 0; }
+		.radios { height: 40px; }
+		.ss-list { max-width: calc(100vw - 32px); max-height: 50vh; }
+		.ss-list li { white-space: normal; padding: 9px 8px; border-bottom: 1px solid var(--grid); }
+		fieldset.results { border: 0; padding: 0; margin: 16px 0 0; }
+		fieldset.results > legend { padding: 0 0 6px; color: var(--muted); font-size: 13px; }
+		#tree col.c-km { width: 46px; } #tree col.c-a { width: 76px; } #tree col.c-b { width: 64px; }
+		#tree.no4 col.c-a { width: 104px; } #tree.no4 col.c-b { width: 0; }
+		#tree.no4 th:nth-child(4), #tree.no4 td:nth-child(4) { padding: 0; border: 0; }
+		table.tree th { font-size: 12px; padding: 6px 4px; }
+		table.tree td { white-space: normal; overflow-wrap: anywhere; height: auto; padding: 10px 6px; line-height: 1.3; }
+		table.tree td.num { white-space: nowrap; padding-left: 2px; }
+		table.tree tr.detail td { padding: 0 0 12px; }
+		.info { grid-template-columns: minmax(0, 1fr); row-gap: 2px; margin: 4px 10px 12px; flex: 1 1 100%; max-width: none; }
+		.panel.screening .info { max-width: none; }
+		.info .k { margin-top: 10px; }
+		.info .k:first-child { margin-top: 0; }
+		.info .v { overflow-wrap: anywhere; }
+		table.lag { width: 100%; }
+		table.lag th:nth-child(n) { width: auto; white-space: normal; vertical-align: bottom; font-size: 12px; }
+		.tip { max-width: calc(100vw - 16px); }
+	}
 </style>
 </head>
 <body>
@@ -122,8 +204,8 @@
 	<h1 class="title">Ontario Medical Wait Times Lookup</h1>
 	<div class="form">
 		<div class="line">
-			<label class="field"><span class="cap">Postal code</span><input type="text" id="postal" value="" size="10" maxlength="7" placeholder="A1A 1A1"></label>
-			<label class="field"><span class="cap">Radius (km)</span><input type="text" id="radius" value="40" size="7"></label>
+			<label class="field half"><span class="cap">Postal code</span><input type="text" id="postal" value="" size="10" maxlength="7" placeholder="A1A 1A1" autocomplete="postal-code" autocapitalize="characters" spellcheck="false" enterkeyhint="search"></label>
+			<label class="field half"><span class="cap">Radius (km)</span><input type="text" id="radius" value="40" size="7" inputmode="decimal" enterkeyhint="search"></label>
 			<div class="field"><span class="cap">Search for</span>
 				<div class="radios">
 					<label><input type="radio" name="kind" value="imaging" checked> Imaging</label>
@@ -132,30 +214,30 @@
 			</div>
 		</div>
 		<div class="line">
-			<div class="field" id="imagingOpts"><span class="cap">Imaging type</span>
-				<select id="imaging" style="width:130px"><option>CT</option><option>MRI</option><option>Breast screening</option></select>
+			<div class="field grow" id="imagingOpts"><span class="cap">Imaging type</span>
+				<select id="imaging"><option>CT</option><option>MRI</option><option>Breast screening</option></select>
 			</div>
 			<div class="inline" id="surgeryOpts" hidden>
 				<div class="field"><span class="cap">Procedure (type to search)</span>
 					<div class="ss"><input type="text" id="proc" size="44" autocomplete="off" disabled value="Loading procedures..."><ul class="ss-list" id="procList" hidden></ul></div>
 				</div>
-				<div class="field"><span class="cap">Wait</span>
-					<select id="wait" style="width:230px"><option value="2">Decision to surgery (Wait 2)</option><option value="1">Referral to first appointment (Wait 1)</option></select>
+				<div class="field grow"><span class="cap">Wait</span>
+					<select id="wait"><option value="2">Decision to surgery (Wait 2)</option><option value="1">Referral to first appointment (Wait 1)</option></select>
 				</div>
 			</div>
-			<div class="field"><span class="cap">Priority<span class="help" id="prioHelp">(?)</span></span>
-				<select id="priority" style="width:46px"><option>2</option><option>3</option><option selected>4</option></select>
+			<div class="field prio"><span class="cap">Priority<span class="help" id="prioHelp">(?)</span></span>
+				<select id="priority"><option>2</option><option>3</option><option selected>4</option></select>
 			</div>
-			<div class="field"><span class="cap">&nbsp;</span>
+			<div class="field act"><span class="cap">&nbsp;</span>
 				<div class="searchcell"><button id="searchBtn">Search</button><div class="progress" id="progress" hidden><div class="bar"></div></div></div>
 			</div>
-			<div class="field"><span class="cap">&nbsp;</span><button id="exportBtn" disabled>Export CSV</button></div>
+			<div class="field act"><span class="cap">&nbsp;</span><button id="exportBtn" disabled>Export CSV</button></div>
 		</div>
 	</div>
-	<fieldset class="results"><legend id="resultsHint">Search results. Click a column header to sort. Click a site to show or hide its details.</legend>
+	<fieldset class="results" id="results"><legend id="resultsHint">Search results. Click a column header to sort. Click a site to show or hide its details.</legend>
 		<div class="tablewrap" id="tablewrap" tabindex="0">
 			<table class="tree" id="tree">
-				<colgroup><col><col style="width:70px"><col style="width:250px"><col style="width:130px"></colgroup>
+				<colgroup><col><col class="c-km"><col class="c-a"><col class="c-b"></colgroup>
 				<thead><tr><th data-col="0">Site</th><th data-col="1">km</th><th data-col="2"></th><th data-col="3"></th></tr></thead>
 				<tbody id="tbody"></tbody>
 			</table>
@@ -163,7 +245,7 @@
 	</fieldset>
 	<div class="advtoggle" id="advToggle">&#9660; Show advanced</div>
 	<fieldset id="advBox" hidden><legend>Rank persistence: how well one month's ranking predicts later months</legend>
-		<table class="lag"><thead><tr><th style="width:100px">Lag (months)</th><th style="width:150px">Mean Spearman rho</th><th style="width:150px">Leader still top 3</th><th style="width:110px">Chance (3/n)</th><th style="width:110px">Month pairs</th></tr></thead><tbody id="lagBody"></tbody></table>
+		<div class="lagwrap"><table class="lag"><thead><tr><th>Lag (months)</th><th>Mean Spearman rho</th><th>Leader still top 3</th><th>Chance (3/n)</th><th>Month pairs</th></tr></thead><tbody id="lagBody"></tbody></table></div>
 	</fieldset>
 	<div class="footer">From <a href="https://www.ontariohealth.ca" target="_blank" rel="noopener">www.ontariohealth.ca</a><span id="updated">. &#9749; If you found this page useful, consider buying me a coffee at <a href="https://ko-fi.com/small_____" target="_blank" rel="noopener">ko-fi.com/small_____</a></span></div>
 	<div class="kofi"></div>
@@ -190,6 +272,9 @@ const RESULTS_HINT = "Search results. Click a column header to sort. Click a sit
 const SCREENING_CAP_NOTE = "Some outlying breast screening sites may be missing from this search.";
 const PRIORITY_HELP = "P2-- Urgent; 2 day target\nP3-- Semi-Urgent/Suspected Cancer; 10 day target\nP4-- Non-Urgent/Elective; 28 day target";
 const WINDOW = 12, LAGS = [1, 3, 6, 12], MIN_SITES = 6, WORKERS = 8, TIMEOUT_MS = 30000;
+// Smaller screens: phones get short column headings and a stacked layout; touch screens get "Tap" wording.
+const PHONE = matchMedia("(max-width: 640px)"), TOUCH = matchMedia("(pointer: coarse)");
+const resultsHint = () => TOUCH.matches ? RESULTS_HINT.replace(/Click/g, "Tap") : RESULTS_HINT;
 
 class ApiError extends Error {}
 
@@ -552,7 +637,9 @@ function niceStep(span) {
 }
 function lineChart(months, series, target, yTitle, W = 500, H = 230) {
 	const svg = svgEl("svg", {width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: "chart", "font-family": '"Segoe UI", Tahoma, Arial, sans-serif', "font-size": 11});
-	const lh = 16, L = 46, R = 12, T = Math.round(lh * 2.4), B = Math.round(lh * 1.8);
+	const narrow = W < 400;  // narrow charts start the title and legend at the left edge, above the axis labels
+	const lh = 16, L = 46, R = 12, T = Math.round(lh * 2.4) + (narrow ? 8 : 0), B = Math.round(lh * 1.8);
+	const tx0 = narrow ? 4 : L;
 	const vals = series.flatMap(s => s.ys.filter(v => v != null));
 	if (target != null) vals.push(target);
 	const text = (x, y, t, attrs) => { const e = svgEl("text", Object.assign({x, y, fill: "#3C4043"}, attrs || {})); e.textContent = t; svg.append(e); return e; };
@@ -574,7 +661,7 @@ function lineChart(months, series, target, yTitle, W = 500, H = 230) {
 	});
 	svg.append(svgEl("line", {x1: x0, y1: y1, x2: x1, y2: y1, stroke: "#B8BEC6"}));
 	svg.append(svgEl("line", {x1: x0, y1: y0, x2: x0, y2: y1, stroke: "#B8BEC6"}));
-	text(x0, 15, yTitle, {fill: "#111111"});
+	text(tx0, 15, yTitle, {fill: "#111111"});
 	if (target != null) svg.append(svgEl("line", {x1: x0, y1: Y(target), x2: x1, y2: Y(target), stroke: "#B3261E", "stroke-width": 1.5, "stroke-dasharray": "5 3"}));
 	for (const s of series) {
 		let run = [];
@@ -586,7 +673,7 @@ function lineChart(months, series, target, yTitle, W = 500, H = 230) {
 		s.ys.forEach((v, i) => { if (v != null) run.push([X(i), Y(v)]); else flush(); });
 		flush();
 	}
-	let lx = x0;
+	let lx = tx0;
 	const ly = 4 + lh * 1.5;
 	const items = series.map(s => [s.name, s.color, null]);
 	if (target != null) items.push([`Target: ${g(target)} days`, "#B3261E", "5 3"]);
@@ -601,8 +688,9 @@ function lineChart(months, series, target, yTitle, W = 500, H = 230) {
 	svg.append(hover);
 	const overlay = svgEl("rect", {x: 0, y: 0, width: W, height: H, fill: "transparent"});
 	svg.append(overlay);
-	overlay.addEventListener("mouseleave", () => { hover.innerHTML = ""; });
-	overlay.addEventListener("mousemove", e => {
+	// Pointer events so a tap or a sideways drag shows the readout on touch screens; it stays until the next tap.
+	overlay.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hover.innerHTML = ""; });
+	const draw = e => {
 		const box = svg.getBoundingClientRect();
 		const mx = (e.clientX - box.left) * (W / box.width);
 		const span = (W - L - R) / Math.max(1, n - 1);
@@ -620,14 +708,16 @@ function lineChart(months, series, target, yTitle, W = 500, H = 230) {
 		const tx = x + 10 + w < W - 4 ? x + 10 : x - 10 - w, ty = T + 4;
 		hover.append(svgEl("rect", {x: tx - 5, y: ty - 4, width: w + 10, height: h + 8, fill: "#FFFFFF", stroke: "#B8BEC6"}));
 		lines.forEach((t, k) => { const e = svgEl("text", {x: tx, y: ty + 11 + k * 14, fill: "#111111"}); e.textContent = t; hover.append(e); });
-	});
+	};
+	overlay.addEventListener("pointermove", draw);
+	overlay.addEventListener("pointerdown", draw);
 	return svg;
 }
 
 // ---------------------------------------------------------------- UI state
 const $ = id => document.getElementById(id);
 const state = {analysis: null, specs: [], sortCol: 3, sortDesc: false, openId: null, selId: null, procs: [], selectedProc: null,
-	targets: new Map(), targetsLoading: new Set(), busy: false, headings: ["Site", "km", "", ""]};
+	targets: new Map(), targetsLoading: new Set(), busy: false, headings: ["Site", "km", "", ""], short: ["Site", "km", "", ""]};
 
 function kind() { return document.querySelector("input[name=kind]:checked").value; }
 function imagingCode() { return ({"CT": "CT", "MRI": "MRI", "Breast screening": "BREAST"})[$("imaging").value]; }
@@ -742,17 +832,20 @@ async function loadTargets() {
 	finally { state.targetsLoading.delete(key); }
 }
 let tipTimer = null;
-$("prioHelp").addEventListener("mouseenter", () => {
-	clearTimeout(tipTimer);
-	tipTimer = setTimeout(() => {
-		const tip = $("tip"), r = $("prioHelp").getBoundingClientRect();
-		tip.textContent = priorityHelp();
-		tip.style.left = (r.left + 4) + "px";
-		tip.style.top = (r.bottom + 4) + "px";
-		tip.hidden = false;
-	}, 300);
-});
+function showTip() {
+	const tip = $("tip"), r = $("prioHelp").getBoundingClientRect();
+	tip.textContent = priorityHelp();
+	tip.style.left = "0px";
+	tip.hidden = false;
+	tip.style.left = Math.max(4, Math.min(r.left + 4, innerWidth - tip.offsetWidth - 4)) + "px";
+	tip.style.top = (r.bottom + 4) + "px";
+}
+$("prioHelp").addEventListener("mouseenter", () => { clearTimeout(tipTimer); tipTimer = setTimeout(showTip, 300); });
 $("prioHelp").addEventListener("mouseleave", () => { clearTimeout(tipTimer); $("tip").hidden = true; });
+// Touch screens have no hover: a tap shows the tip, and a tap elsewhere or a scroll hides it.
+$("prioHelp").addEventListener("click", () => { clearTimeout(tipTimer); showTip(); });
+document.addEventListener("click", e => { if (e.target !== $("prioHelp")) $("tip").hidden = true; });
+addEventListener("scroll", () => { $("tip").hidden = true; }, {passive: true});
 
 // advanced
 $("advToggle").addEventListener("click", () => {
@@ -791,11 +884,13 @@ async function search() {
 		priority = Number($("priority").value);
 	} catch (e) { alert(e.message); return; }
 	hideList();
+	if (TOUCH.matches && document.activeElement) document.activeElement.blur();  // put the on-screen keyboard away
 	setBusy(true);
 	try {
 		const a = await analyze(postal, radius, svc, priority);
 		setBusy(false);
 		show(a);
+		if (PHONE.matches) $("results").scrollIntoView({block: "start"});
 	} catch (e) {
 		setBusy(false);
 		alert(e.message || String(e));
@@ -818,9 +913,10 @@ function show(a) {
 	state.analysis = a;
 	rememberPostal(a.postal);
 	const svc = a.svc;
-	let specs = [], hint = RESULTS_HINT;
+	let specs = [], hint = resultsHint();
 	if (svc.isScreening) {
 		state.headings = ["Site", "km", "Estimated wait", ""];
+		state.short = state.headings;
 		specs = a.screening.map((s, i) => ({id: "s" + i, values: [s.name, s.distanceKm.toFixed(1), s.waitText, ""],
 			keys: [s.name.toLowerCase(), s.distanceKm, s.waitDays != null ? screeningKey(s) : null, null],
 			kind: s.waitDays != null ? "site" : "nodata", build: f => screeningDetail(f, s)}));
@@ -828,6 +924,7 @@ function show(a) {
 		if (!a.screeningComplete) hint += " " + SCREENING_CAP_NOTE;
 	} else {
 		state.headings = ["Site", "km", `Latest ${P90_LABEL}`, "12-mo median"];
+		state.short = ["Site", "km", "Latest 90th pct (days)", "12-mo median"];
 		const spec = (r, k, i) => {
 			const isProv = r.site.id === PROVINCIAL_ID, km = isProv ? null : r.site.distanceKm;
 			return {id: "r" + i, values: [r.site.name, km == null ? "" : km.toFixed(1), fmtDays(r.latest), fmtDays(r.median)],
@@ -867,11 +964,13 @@ function sortedSpecs() {
 	return ordered(state.specs.filter(s => s.kind !== "nodata")).concat(ordered(state.specs.filter(s => s.kind === "nodata")));
 }
 function drawHeadings() {
+	const phone = PHONE.matches;
+	$("tree").classList.toggle("no4", !state.headings[3]);  // phones drop an empty fourth column
 	document.querySelectorAll("#tree th").forEach((th, i) => {
-		let t = state.headings[i];
-		if (i === state.sortCol && t && state.specs.length) t += state.sortDesc ? " (desc)" : " (asc)";
+		let t = (phone ? state.short : state.headings)[i];
+		if (i === state.sortCol && t && state.specs.length) t += phone ? (state.sortDesc ? " ▼" : " ▲") : (state.sortDesc ? " (desc)" : " (asc)");
 		th.textContent = t;
-		th.title = t;
+		th.title = phone ? state.headings[i] : t;
 		th.append(el("span", {class: "grip"}));
 	});
 	attachGrips();
@@ -888,8 +987,8 @@ function render() {
 		tb.append(tr);
 		if (s.id === state.openId) {
 			const panel = el("div", {class: "panel"});
-			s.build(panel);
 			tb.append(el("tr", {class: "detail"}, el("td", {colspan: 4}, panel)));
+			s.build(panel);  // after the panel is on the page, so the chart can size itself to it
 		}
 	}
 }
@@ -938,7 +1037,7 @@ function attachGrips() {
 			e.stopPropagation();
 			const target = i === 0 ? 1 : i;  // the Site column stretches, so its boundary moves the km column
 			const sign = i === 0 ? -1 : 1;
-			const startX = e.clientX, startW = cols[target].getBoundingClientRect().width || parseFloat(cols[target].style.width);
+			const startX = e.clientX, startW = cols[target].getBoundingClientRect().width || parseFloat(cols[target].style.width) || parseFloat(getComputedStyle(cols[target]).width);
 			const move = ev => { cols[target].style.width = Math.max(40, startW + sign * (ev.clientX - startX)) + "px"; };
 			const up = () => {
 				document.removeEventListener("mousemove", move);
@@ -1028,7 +1127,8 @@ function historyDetail(panel, r) {
 	if (a.province) series.push({name: "Ontario", ys: months.map(m => (a.province.p90[m] || {})[p] ?? null), color: "#5F6368"});
 	let target = h.targets ? h.targets[p] : null;
 	if (target == null && a.province) target = a.province.targets[p];
-	panel.append(lineChart(months, series, target ?? null, `Priority ${p}, ${P90_LABEL}, by month`));
+	const W = Math.max(260, Math.min(500, panel.clientWidth - 16));  // 500 wide, narrower to fit phones
+	panel.append(lineChart(months, series, target ?? null, `Priority ${p}, ${P90_LABEL}, by month`, W));
 	const rows = [];
 	if (!isProv) {
 		rows.push(["Address", fullAddress(r.site) || "Not listed"]);
@@ -1107,7 +1207,19 @@ function exportCsv() {
 }
 $("exportBtn").addEventListener("click", exportCsv);
 
+// Charts fit their panel and phones use short headings, so redraw when the width changes (rotation, resizing).
+let lastWidth = innerWidth, resizeTimer = null;
+addEventListener("resize", () => {
+	clearTimeout(resizeTimer);
+	resizeTimer = setTimeout(() => {
+		if (innerWidth === lastWidth) return;
+		lastWidth = innerWidth;
+		if (state.specs.length) render(); else drawHeadings();
+	}, 150);
+});
+
 // ---------------------------------------------------------------- start
+$("resultsHint").textContent = resultsHint();
 $("postal").value = recallPostal();
 drawHeadings();
 $("tbody").append(el("tr", {}, el("td", {colspan: 4, class: "empty", text: "No results yet."})));
